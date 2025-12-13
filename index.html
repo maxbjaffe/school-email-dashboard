@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>School Communications Dashboard - POC</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+        }
+        .header h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            text-align: center;
+        }
+        .stat-card .number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #667eea;
+        }
+        .stat-card .label {
+            color: #666;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+        .stat-card.highlight {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .stat-card.highlight .number {
+            color: white;
+        }
+        .stat-card.highlight .label {
+            color: rgba(255,255,255,0.9);
+        }
+        .charts-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .chart-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .chart-card h3 {
+            margin-bottom: 1rem;
+            color: #333;
+            font-size: 1.1rem;
+        }
+        .events-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+        .event-list {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .event-list h3 {
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .event-item {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem;
+            border-bottom: 1px solid #eee;
+            gap: 1rem;
+        }
+        .event-item:last-child {
+            border-bottom: none;
+        }
+        .event-date {
+            background: #667eea;
+            color: white;
+            border-radius: 8px;
+            padding: 0.5rem;
+            text-align: center;
+            min-width: 50px;
+        }
+        .event-date .day {
+            font-size: 1.2rem;
+            font-weight: 700;
+        }
+        .event-date .month {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+        }
+        .event-details h4 {
+            font-size: 0.95rem;
+            margin-bottom: 0.25rem;
+        }
+        .event-details .meta {
+            font-size: 0.8rem;
+            color: #888;
+        }
+        .sender-tag {
+            display: inline-block;
+            padding: 0.15rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .sender-tag.teacher { background: #e3f2fd; color: #1976d2; }
+        .sender-tag.pta { background: #f3e5f5; color: #7b1fa2; }
+        .sender-tag.district { background: #e8f5e9; color: #388e3c; }
+        .action-item {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem;
+            border-bottom: 1px solid #eee;
+            gap: 0.75rem;
+        }
+        .action-item:last-child {
+            border-bottom: none;
+        }
+        .action-checkbox {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #667eea;
+            border-radius: 4px;
+        }
+        .action-details h4 {
+            font-size: 0.9rem;
+            margin-bottom: 0.2rem;
+        }
+        .action-details .deadline {
+            font-size: 0.75rem;
+            color: #e53935;
+            font-weight: 600;
+        }
+        .problem-section {
+            background: #fff3e0;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-top: 2rem;
+            text-align: center;
+        }
+        .problem-section h2 {
+            color: #e65100;
+            margin-bottom: 1rem;
+        }
+        .comparison {
+            display: flex;
+            justify-content: center;
+            gap: 3rem;
+            margin-top: 1.5rem;
+        }
+        .comparison-item {
+            text-align: center;
+        }
+        .comparison-item .big {
+            font-size: 3rem;
+            font-weight: 700;
+        }
+        .comparison-item.before .big { color: #e53935; }
+        .comparison-item.after .big { color: #43a047; }
+        .arrow {
+            font-size: 3rem;
+            color: #666;
+            align-self: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Tuckahoe School Communications</h1>
+        <p>Your unified dashboard for school events, actions & announcements</p>
+    </div>
+
+    <div class="container">
+        <!-- Key Stats -->
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="number">2,214</div>
+                <div class="label">Emails Analyzed</div>
+            </div>
+            <div class="stat-card">
+                <div class="number">2,698</div>
+                <div class="label">Events Extracted</div>
+            </div>
+            <div class="stat-card">
+                <div class="number">1,930</div>
+                <div class="label">Unique Events</div>
+            </div>
+            <div class="stat-card highlight">
+                <div class="number">28%</div>
+                <div class="label">Duplicates Eliminated</div>
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="charts-row">
+            <div class="chart-card">
+                <h3>Email Volume by Month</h3>
+                <canvas id="volumeChart"></canvas>
+            </div>
+            <div class="chart-card">
+                <h3>Emails by Sender Type</h3>
+                <canvas id="senderChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Events and Actions -->
+        <div class="events-section">
+            <div class="event-list">
+                <h3>📅 Upcoming Events</h3>
+                <div class="event-item">
+                    <div class="event-date">
+                        <div class="day">25</div>
+                        <div class="month">May</div>
+                    </div>
+                    <div class="event-details">
+                        <h4>Heart Healthy Field Day</h4>
+                        <div class="meta">
+                            <span class="sender-tag teacher">Teacher</span>
+                            Mentioned in 6 emails
+                        </div>
+                    </div>
+                </div>
+                <div class="event-item">
+                    <div class="event-date">
+                        <div class="day">24</div>
+                        <div class="month">May</div>
+                    </div>
+                    <div class="event-details">
+                        <h4>WEC Virtual Band Spring Concert</h4>
+                        <div class="meta">
+                            <span class="sender-tag teacher">Teacher</span>
+                            Mentioned in 5 emails
+                        </div>
+                    </div>
+                </div>
+                <div class="event-item">
+                    <div class="event-date">
+                        <div class="day">25</div>
+                        <div class="month">May</div>
+                    </div>
+                    <div class="event-details">
+                        <h4>WEC Virtual Orchestra Spring Concert</h4>
+                        <div class="meta">
+                            <span class="sender-tag teacher">Teacher</span>
+                            Mentioned in 5 emails
+                        </div>
+                    </div>
+                </div>
+                <div class="event-item">
+                    <div class="event-date">
+                        <div class="day">26</div>
+                        <div class="month">May</div>
+                    </div>
+                    <div class="event-details">
+                        <h4>Tuckahoe PTA Virtual General Meeting</h4>
+                        <div class="meta">
+                            <span class="sender-tag pta">PTA</span>
+                            <span class="sender-tag teacher">Teacher</span>
+                            Mentioned in 4 emails
+                        </div>
+                    </div>
+                </div>
+                <div class="event-item">
+                    <div class="event-date">
+                        <div class="day">01</div>
+                        <div class="month">Oct</div>
+                    </div>
+                    <div class="event-details">
+                        <h4>Picture Day</h4>
+                        <div class="meta">
+                            <span class="sender-tag teacher">Teacher</span>
+                            Mentioned in 4 emails
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="event-list">
+                <h3>✅ Action Items</h3>
+                <div class="action-item">
+                    <div class="action-checkbox"></div>
+                    <div class="action-details">
+                        <h4>Submit Picture Day forms</h4>
+                        <div class="deadline">Due: Sep 30</div>
+                    </div>
+                </div>
+                <div class="action-item">
+                    <div class="action-checkbox"></div>
+                    <div class="action-details">
+                        <h4>Register for PTA Dance</h4>
+                        <div class="deadline">Due: Sep 30</div>
+                    </div>
+                </div>
+                <div class="action-item">
+                    <div class="action-checkbox"></div>
+                    <div class="action-details">
+                        <h4>Order Fall Spiritwear</h4>
+                        <div class="deadline">Due: Oct 15</div>
+                    </div>
+                </div>
+                <div class="action-item">
+                    <div class="action-checkbox"></div>
+                    <div class="action-details">
+                        <h4>Volunteer for Building Bridges</h4>
+                        <div class="deadline">Due: Oct 20</div>
+                    </div>
+                </div>
+                <div class="action-item">
+                    <div class="action-checkbox"></div>
+                    <div class="action-details">
+                        <h4>Order Cottle Yearbook</h4>
+                        <div class="deadline">Due: Mar 15</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Costs Section -->
+        <div class="charts-row" style="margin-top: 2rem;">
+            <div class="chart-card">
+                <h3>💰 Annual Cost Tracker</h3>
+                <p style="color: #666; margin-bottom: 1rem; font-size: 0.9rem;">Estimated optional costs extracted from school emails</p>
+                <canvas id="costChart"></canvas>
+                <div style="margin-top: 1.5rem; padding: 1rem; background: #f5f5f5; border-radius: 8px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 1.1rem; font-weight: 600;">Estimated Annual Total</span>
+                        <span style="font-size: 1.5rem; font-weight: 700; color: #667eea;">~$835/year</span>
+                    </div>
+                    <p style="font-size: 0.8rem; color: #888; margin-top: 0.5rem;">Per child • Optional activities only • Actual costs vary</p>
+                </div>
+            </div>
+            <div class="chart-card">
+                <h3>📋 Cost Items by Category</h3>
+                <div style="margin-top: 1rem;">
+                    <div class="cost-row" style="display: flex; justify-content: space-between; padding: 0.75rem 0; border-bottom: 1px solid #eee;">
+                        <div>
+                            <strong>PTA Dance Program</strong>
+                            <div style="font-size: 0.8rem; color: #888;">Per semester</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-weight: 600; color: #667eea;">$200–$245</div>
+                            <div style="font-size: 0.75rem; color: #888;">20 mentions</div>
+                        </div>
+                    </div>
+                    <div class="cost-row" style="display: flex; justify-content: space-between; padding: 0.75rem 0; border-bottom: 1px solid #eee;">
+                        <div>
+                            <strong>Family Photos</strong>
+                            <div style="font-size: 0.8rem; color: #888;">Fundraiser</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-weight: 600; color: #667eea;">$125</div>
+                            <div style="font-size: 0.75rem; color: #888;">3 mentions</div>
+                        </div>
+                    </div>
+                    <div class="cost-row" style="display: flex; justify-content: space-between; padding: 0.75rem 0; border-bottom: 1px solid #eee;">
+                        <div>
+                            <strong>Yearbook</strong>
+                            <div style="font-size: 0.8rem; color: #888;">Annual</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-weight: 600; color: #667eea;">$35–$55</div>
+                            <div style="font-size: 0.75rem; color: #888;">13 mentions</div>
+                        </div>
+                    </div>
+                    <div class="cost-row" style="display: flex; justify-content: space-between; padding: 0.75rem 0; border-bottom: 1px solid #eee;">
+                        <div>
+                            <strong>Events & Tickets</strong>
+                            <div style="font-size: 0.8rem; color: #888;">Shows, fundraisers</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-weight: 600; color: #667eea;">$20–$35</div>
+                            <div style="font-size: 0.75rem; color: #888;">18 mentions</div>
+                        </div>
+                    </div>
+                    <div class="cost-row" style="display: flex; justify-content: space-between; padding: 0.75rem 0; border-bottom: 1px solid #eee;">
+                        <div>
+                            <strong>Spirit Wear</strong>
+                            <div style="font-size: 0.8rem; color: #888;">Seasonal</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-weight: 600; color: #667eea;">$20–$25</div>
+                            <div style="font-size: 0.75rem; color: #888;">4 mentions</div>
+                        </div>
+                    </div>
+                    <div class="cost-row" style="display: flex; justify-content: space-between; padding: 0.75rem 0;">
+                        <div>
+                            <strong>Book Fairs</strong>
+                            <div style="font-size: 0.8rem; color: #888;">~2x per year</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-weight: 600; color: #667eea;">$5–$25</div>
+                            <div style="font-size: 0.75rem; color: #888;">6 mentions</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Problem/Solution -->
+        <div class="problem-section">
+            <h2>The Problem We're Solving</h2>
+            <p>Parents receive an average of <strong>10 school emails per week</strong> with significant overlap and duplication.</p>
+            <div class="comparison">
+                <div class="comparison-item before">
+                    <div class="big">2,698</div>
+                    <div>Total Event Mentions</div>
+                </div>
+                <div class="arrow">→</div>
+                <div class="comparison-item after">
+                    <div class="big">1,930</div>
+                    <div>Unique Events</div>
+                </div>
+            </div>
+            <p style="margin-top: 1.5rem; color: #666;">
+                <strong>424 events</strong> were mentioned in multiple emails.<br>
+                <strong>40 events</strong> were mentioned by multiple sender types.
+            </p>
+        </div>
+
+        <!-- Year over Year Section -->
+        <div class="charts-row" style="margin-top: 2rem;">
+            <div class="chart-card">
+                <h3>📊 Year-over-Year Email Volume</h3>
+                <p style="color: #666; margin-bottom: 1rem; font-size: 0.9rem;">School communication trends across school years</p>
+                <canvas id="yoyChart"></canvas>
+            </div>
+            <div class="chart-card">
+                <h3>📈 Year-over-Year Estimated Costs</h3>
+                <p style="color: #666; margin-bottom: 1rem; font-size: 0.9rem;">Optional costs extracted from school emails by year</p>
+                <canvas id="yoyCostChart"></canvas>
+                <div style="margin-top: 1rem; padding: 0.75rem; background: #f5f5f5; border-radius: 8px; font-size: 0.85rem; color: #666;">
+                    <strong>Note:</strong> Costs vary by participation. Dance program is the largest expense (~$430/yr). 2020-21 had reduced activities due to COVID.
+                </div>
+            </div>
+        </div>
+
+        <!-- Monthly Cost Distribution -->
+        <div class="charts-row" style="margin-top: 2rem;">
+            <div class="chart-card">
+                <h3>📅 When Costs Hit: Monthly Distribution</h3>
+                <p style="color: #666; margin-bottom: 1rem; font-size: 0.9rem;">Peak spending months for school-related expenses</p>
+                <canvas id="monthlyCostChart"></canvas>
+            </div>
+            <div class="chart-card">
+                <h3>🔄 Cross-Sender Event Overlap</h3>
+                <p style="color: #666; margin-bottom: 1rem; font-size: 0.9rem;">Events mentioned by multiple sender types (showing the redundancy problem)</p>
+                <div style="margin-top: 1rem;">
+                    <div style="display: flex; justify-content: space-between; padding: 0.75rem; background: #fff3e0; border-radius: 8px; margin-bottom: 0.5rem;">
+                        <div>
+                            <strong>PTA Spring Social 2024</strong>
+                            <div style="font-size: 0.8rem; color: #888;">Apr 26, 2024</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-weight: 600; color: #e65100;">12 mentions</div>
+                            <div style="font-size: 0.75rem;"><span class="sender-tag district">District</span> <span class="sender-tag pta">PTA</span></div>
+                        </div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding: 0.75rem; background: #fff3e0; border-radius: 8px; margin-bottom: 0.5rem;">
+                        <div>
+                            <strong>Spring Social 2023</strong>
+                            <div style="font-size: 0.8rem; color: #888;">Apr 21, 2023</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-weight: 600; color: #e65100;">11 mentions</div>
+                            <div style="font-size: 0.75rem;"><span class="sender-tag teacher">Teacher</span> <span class="sender-tag pta">PTA</span></div>
+                        </div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding: 0.75rem; background: #fff3e0; border-radius: 8px; margin-bottom: 0.5rem;">
+                        <div>
+                            <strong>Election Day - No School</strong>
+                            <div style="font-size: 0.8rem; color: #888;">Nov 5, 2024</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-weight: 600; color: #e65100;">8 mentions</div>
+                            <div style="font-size: 0.75rem;"><span class="sender-tag teacher">Teacher</span> <span class="sender-tag district">District</span> <span class="sender-tag pta">PTA</span></div>
+                        </div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding: 0.75rem; background: #fff3e0; border-radius: 8px; margin-bottom: 0.5rem;">
+                        <div>
+                            <strong>Fall Family Photos</strong>
+                            <div style="font-size: 0.8rem; color: #888;">Sep-Oct (yearly)</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-weight: 600; color: #e65100;">6 mentions</div>
+                            <div style="font-size: 0.75rem;"><span class="sender-tag teacher">Teacher</span> <span class="sender-tag pta">PTA</span></div>
+                        </div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding: 0.75rem; background: #fff3e0; border-radius: 8px;">
+                        <div>
+                            <strong>Book Fair</strong>
+                            <div style="font-size: 0.8rem; color: #888;">Fall & Spring (yearly)</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-weight: 600; color: #e65100;">5 mentions</div>
+                            <div style="font-size: 0.75rem;"><span class="sender-tag teacher">Teacher</span> <span class="sender-tag pta">PTA</span></div>
+                        </div>
+                    </div>
+                </div>
+                <div style="margin-top: 1rem; text-align: center; font-size: 0.9rem; color: #666;">
+                    <strong>40 events</strong> total were mentioned by 2+ sender types
+                </div>
+            </div>
+        </div>
+
+        <!-- Health & Nurse Section -->
+        <div class="charts-row" style="margin-top: 2rem;">
+            <div class="chart-card" style="background: linear-gradient(135deg, #e8f5e9 0%, #fff 100%);">
+                <h3>🏥 Health Office Communications</h3>
+                <p style="color: #666; margin-bottom: 1rem; font-size: 0.9rem;">Nurse emails and required health forms extracted from school communications</p>
+
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.5rem;">
+                    <div style="text-align: center; padding: 1rem; background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                        <div style="font-size: 2rem; font-weight: 700; color: #43a047;">63</div>
+                        <div style="font-size: 0.85rem; color: #666;">Nurse Emails</div>
+                    </div>
+                    <div style="text-align: center; padding: 1rem; background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                        <div style="font-size: 2rem; font-weight: 700; color: #43a047;">7</div>
+                        <div style="font-size: 0.85rem; color: #666;">Health Forms (PDFs)</div>
+                    </div>
+                    <div style="text-align: center; padding: 1rem; background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                        <div style="font-size: 2rem; font-weight: 700; color: #43a047;">5</div>
+                        <div style="font-size: 0.85rem; color: #666;">Form Types</div>
+                    </div>
+                </div>
+
+                <h4 style="margin-bottom: 0.75rem; color: #2e7d32;">Illness Alerts (37 notifications)</h4>
+                <div style="margin-bottom: 1.5rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: white; border-radius: 8px; margin-bottom: 0.5rem; border-left: 4px solid #e53935;">
+                        <div>
+                            <strong>COVID-19 Case Notifications</strong>
+                            <div style="font-size: 0.8rem; color: #666;">Positive cases reported at school (2020-2022)</div>
+                        </div>
+                        <span style="background: #e53935; color: white; padding: 0.25rem 0.75rem; border-radius: 4px; font-size: 0.9rem; font-weight: 600;">34</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: white; border-radius: 8px; border-left: 4px solid #ff9800;">
+                        <div>
+                            <strong>Flu Season / Respiratory Illness</strong>
+                            <div style="font-size: 0.8rem; color: #666;">Seasonal illness updates and prevention tips</div>
+                        </div>
+                        <span style="background: #ff9800; color: white; padding: 0.25rem 0.75rem; border-radius: 4px; font-size: 0.9rem; font-weight: 600;">3</span>
+                    </div>
+                </div>
+
+                <h4 style="margin-bottom: 0.75rem; color: #2e7d32;">Required Health Forms</h4>
+                <div style="margin-bottom: 1rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: white; border-radius: 8px; margin-bottom: 0.5rem; border-left: 4px solid #43a047;">
+                        <div>
+                            <strong>Health Assessment Form</strong>
+                            <div style="font-size: 0.8rem; color: #666;">Physical exam documentation required for Kindergarten entry</div>
+                        </div>
+                        <span style="background: #e53935; color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">REQUIRED</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: white; border-radius: 8px; margin-bottom: 0.5rem; border-left: 4px solid #43a047;">
+                        <div>
+                            <strong>Medication Authorization</strong>
+                            <div style="font-size: 0.8rem; color: #666;">Parent + physician signatures needed for any school medications</div>
+                        </div>
+                        <span style="background: #e53935; color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">REQUIRED</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: white; border-radius: 8px; margin-bottom: 0.5rem; border-left: 4px solid #43a047;">
+                        <div>
+                            <strong>Food Allergy Care Plan</strong>
+                            <div style="font-size: 0.8rem; color: #666;">Emergency action plan for students with food allergies</div>
+                        </div>
+                        <span style="background: #ff9800; color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">IF APPLICABLE</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: white; border-radius: 8px; border-left: 4px solid #43a047;">
+                        <div>
+                            <strong>Immunization Records</strong>
+                            <div style="font-size: 0.8rem; color: #666;">Up-to-date vaccination records required annually</div>
+                        </div>
+                        <span style="background: #e53935; color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">REQUIRED</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chart-card">
+                <h3>📋 Health Communication Timeline</h3>
+                <p style="color: #666; margin-bottom: 1rem; font-size: 0.9rem;">When health-related forms and notices are typically sent</p>
+                <canvas id="healthTimelineChart"></canvas>
+                <div style="margin-top: 1rem; padding: 0.75rem; background: #fff3e0; border-radius: 8px;">
+                    <strong style="color: #e65100;">Peak times for health forms:</strong>
+                    <ul style="margin: 0.5rem 0 0 1.25rem; font-size: 0.85rem; color: #666;">
+                        <li><strong>July-August:</strong> Back-to-school health forms, physicals</li>
+                        <li><strong>September:</strong> Immunization deadline reminders</li>
+                        <li><strong>Fall/Winter:</strong> Flu season notices, COVID updates</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Volume Chart - Real data from analysis
+        const volumeCtx = document.getElementById('volumeChart').getContext('2d');
+        new Chart(volumeCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Sep 20', 'Oct 20', 'Nov 20', 'Dec 20', 'Jan 21', 'Feb 21', 'Mar 21', 'Apr 21', 'May 21', 'Jun 21', 'Sep 21', 'Oct 21', 'Nov 21', 'Dec 21', 'Jan 22', 'Feb 22', 'Mar 22'],
+                datasets: [{
+                    label: 'Teacher',
+                    data: [47, 50, 63, 47, 53, 34, 29, 33, 52, 40, 31, 30, 28, 37, 50, 29, 34],
+                    backgroundColor: '#1976d2',
+                }, {
+                    label: 'PTA',
+                    data: [0, 16, 14, 11, 1, 9, 5, 11, 17, 4, 10, 12, 11, 3, 2, 3, 7],
+                    backgroundColor: '#7b1fa2',
+                }, {
+                    label: 'District',
+                    data: [8, 8, 8, 7, 8, 9, 8, 8, 10, 6, 7, 4, 0, 2, 2, 0, 0],
+                    backgroundColor: '#388e3c',
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: { stacked: true },
+                    y: { stacked: true }
+                },
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+
+        // Sender Pie Chart
+        const senderCtx = document.getElementById('senderChart').getContext('2d');
+        new Chart(senderCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Teacher (1,205)', 'District (627)', 'PTA (384)'],
+                datasets: [{
+                    data: [1205, 627, 384],
+                    backgroundColor: ['#1976d2', '#388e3c', '#7b1fa2'],
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+
+        // Cost Breakdown Chart
+        const costCtx = document.getElementById('costChart').getContext('2d');
+        new Chart(costCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Dance', 'Photos', 'Events', 'Yearbook', 'Spirit Wear', 'Books', 'Fundraisers'],
+                datasets: [{
+                    label: 'Estimated Annual Cost',
+                    data: [430, 89, 78, 43, 42, 40, 89],
+                    backgroundColor: [
+                        '#667eea',
+                        '#764ba2',
+                        '#f093fb',
+                        '#f5576c',
+                        '#4facfe',
+                        '#43e97b',
+                        '#fa709a'
+                    ],
+                    borderRadius: 6,
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return '$' + context.raw + '/year';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        ticks: {
+                            callback: function(value) {
+                                return '$' + value;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Year-over-Year Email Volume Chart
+        const yoyCtx = document.getElementById('yoyChart').getContext('2d');
+        new Chart(yoyCtx, {
+            type: 'bar',
+            data: {
+                labels: ['2020-21', '2021-22', '2022-23', '2023-24', '2024-25'],
+                datasets: [{
+                    label: 'Teacher',
+                    data: [396, 249, 313, 14, 64],
+                    backgroundColor: '#1976d2',
+                }, {
+                    label: 'PTA',
+                    data: [78, 84, 34, 93, 73],
+                    backgroundColor: '#7b1fa2',
+                }, {
+                    label: 'District',
+                    data: [65, 13, 82, 326, 89],
+                    backgroundColor: '#388e3c',
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: { stacked: true },
+                    y: {
+                        stacked: true,
+                        title: {
+                            display: true,
+                            text: 'Emails per School Year'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: { position: 'bottom' },
+                    tooltip: {
+                        callbacks: {
+                            afterBody: function(context) {
+                                const total = context.reduce((sum, item) => {
+                                    return sum + (item.raw || 0);
+                                }, 0);
+                                return 'Total: ' + total + ' emails';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Year-over-Year Cost Estimates Chart
+        const yoyCostCtx = document.getElementById('yoyCostChart').getContext('2d');
+        new Chart(yoyCostCtx, {
+            type: 'line',
+            data: {
+                labels: ['2020-21', '2021-22', '2022-23', '2023-24', '2024-25'],
+                datasets: [{
+                    label: 'Estimated Optional Costs',
+                    data: [420, 680, 785, 835, 850],
+                    borderColor: '#667eea',
+                    backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                    fill: true,
+                    tension: 0.3,
+                    pointRadius: 6,
+                    pointBackgroundColor: '#667eea',
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return '~$' + context.raw + '/year';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return '$' + value;
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'Est. Annual Cost per Child'
+                        }
+                    }
+                }
+            }
+        });
+
+        // Monthly Cost Distribution Chart
+        const monthlyCostCtx = document.getElementById('monthlyCostChart').getContext('2d');
+        new Chart(monthlyCostCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                datasets: [{
+                    label: 'Dance',
+                    data: [115, 0, 115, 0, 0, 115, 0, 0, 85, 0],
+                    backgroundColor: '#667eea',
+                }, {
+                    label: 'Photos/Yearbook',
+                    data: [125, 0, 0, 0, 0, 0, 35, 0, 0, 0],
+                    backgroundColor: '#764ba2',
+                }, {
+                    label: 'Events & Tickets',
+                    data: [0, 20, 0, 0, 0, 0, 0, 35, 20, 0],
+                    backgroundColor: '#f093fb',
+                }, {
+                    label: 'Spirit Wear/Books',
+                    data: [20, 15, 0, 0, 0, 0, 0, 0, 15, 0],
+                    backgroundColor: '#4facfe',
+                }, {
+                    label: 'Fundraisers',
+                    data: [0, 0, 25, 0, 0, 0, 0, 0, 25, 0],
+                    backgroundColor: '#43e97b',
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: { stacked: true },
+                    y: {
+                        stacked: true,
+                        ticks: {
+                            callback: function(value) {
+                                return '$' + value;
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'Estimated Monthly Spend'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: { position: 'bottom' },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': $' + context.raw;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Health Timeline Chart
+        const healthTimelineCtx = document.getElementById('healthTimelineChart').getContext('2d');
+        new Chart(healthTimelineCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                datasets: [{
+                    label: 'Health Forms',
+                    data: [3, 5, 8, 2, 4, 3, 6, 2, 3, 1, 2, 1],
+                    backgroundColor: '#43a047',
+                }, {
+                    label: 'COVID/Flu Notices',
+                    data: [0, 2, 4, 6, 8, 5, 10, 4, 2, 1, 0, 0],
+                    backgroundColor: '#ff9800',
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: { stacked: true },
+                    y: {
+                        stacked: true,
+                        title: {
+                            display: true,
+                            text: 'Health Communications'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
